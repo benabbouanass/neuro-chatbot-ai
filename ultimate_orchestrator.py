@@ -65,7 +65,7 @@ class UltimateOrchestrator:
             # Style neutre plus adaptatif selon le contexte
             if len(text.split()) <= 3:
                 style = "concis"
-                emoji = "💬"
+                emoji = ""
             elif any(word in text_lower for word in ["bonjour", "salut", "hello", "bonsoir"]):
                 style = "cordial"
                 emoji = "👋"
@@ -385,7 +385,7 @@ Maintenant, réponds au client selon son style détecté."""
             return self._get_ultimate_fallback(user_input, lead_type, prefix)
                 
         except Exception as e:
-            print(f"⚠️ Erreur API: {e}")
+            print(f"[WARNING] API Error: {e}")
             return self._get_ultimate_fallback(user_input, lead_type, prefix)
     
     def _get_ultimate_fallback(self, user_input: str, lead_type: str, prefix: str) -> str:
@@ -400,40 +400,32 @@ Maintenant, réponds au client selon son style détecté."""
         elif lead_type == "Interested":
             return f"{prefix} — Votre réflexion est tout à fait légitime. Puis-je vous poser 2-3 questions rapides pour mieux cerner vos attentes ?"
         else:
-            # Réponse adaptée selon le style neutre détecté
-            if style == "concis":
-                return f"{prefix} — Solutions disponibles : Basic (99€), Pro (199€), Premium (299€). Laquelle vous intéresse ?"
-            elif style == "cordial":
-                return f"{prefix} — Quelle belle journée pour découvrir nos solutions ! Comment puis-je vous accompagner ?"
-            elif style == "approbateur":
-                return f"{prefix} — Excellent ! Parlons de vos besoins. Quel est votre objectif principal ?"
-            else:
-                return f"{prefix} — Je suis là pour vous aider. Que puis-je faire pour vous aujourd'hui ?"
+            return f"{prefix} — Je suis là pour vous aider ! Que puis-je faire pour vous aujourd'hui ?"
     
     def process_message(self, user_input: str) -> Dict[str, Any]:
         """Pipeline ultime complet"""
         
-        print(f"🔄 Traitement: {user_input}")
+        print(f"[PROCESSING] {user_input}")
         
         # 1. Analyse du style de parole
         style_data = self.analyze_speaking_style(user_input)
         style = style_data["style"]
         style_emoji = style_data["emoji"]
-        print(f"🎭 Style: {style} {style_emoji}")
+        print(f"[STYLE] {style}")
         
         # 2. Analyse émotionnelle
         emotion_data = self.analyze_emotion_hf(user_input)
         emotion = emotion_data["emotion"]
-        print(f"😊 Émotion: {emotion}")
+        print(f"[EMOTION] {emotion}")
         
         # 3. Classification lead ultime
         lead_data = self.classify_lead_ultimate(user_input)
         lead_type = lead_data["lead_type"]
-        print(f"🎯 Lead: {lead_type} (conf: {lead_data['confidence']:.2f})")
+        print(f"[LEAD] {lead_type} (conf: {lead_data['confidence']:.2f})")
         
         # 4. Réponse avec préfixe comportemental
         bot_response = self.get_ultimate_response(user_input, emotion, lead_type, style, style_emoji)
-        print(f"🤖 Réponse finale: {bot_response}")
+        print(f"[RESPONSE] Generated successfully")
         
         return {
             "bot_response": bot_response,
