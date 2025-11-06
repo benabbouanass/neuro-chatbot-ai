@@ -382,14 +382,16 @@ Maintenant, réponds au client selon son style détecté."""
                     if bot_response and bot_response.strip():
                         return bot_response.strip()
             
-            return self._get_ultimate_fallback(user_input, lead_type, prefix)
+            return self._get_ultimate_fallback(user_input, lead_type, prefix, {"style": style})
                 
         except Exception as e:
             print(f"⚠️ Erreur API: {e}")
-            return self._get_ultimate_fallback(user_input, lead_type, prefix)
+            return self._get_ultimate_fallback(user_input, lead_type, prefix, {"style": style})
     
-    def _get_ultimate_fallback(self, user_input: str, lead_type: str, prefix: str) -> str:
+    def _get_ultimate_fallback(self, user_input: str, lead_type: str, prefix: str, style_data: Dict[str, Any] = None) -> str:
         """Réponse de secours optimisée avec empathie et action claire"""
+        
+        style = style_data.get("style", "neutre") if style_data else "neutre"
         
         if lead_type == "Hot":
             return f"{prefix} — Excellent ! Je sens votre motivation. Nos solutions sont disponibles immédiatement. Souhaitez-vous que je vous prépare une offre personnalisée maintenant ?"
