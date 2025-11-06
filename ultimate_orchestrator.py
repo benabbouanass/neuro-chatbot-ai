@@ -62,16 +62,16 @@ class UltimateOrchestrator:
             style = "énergique"
             emoji = "💪"
         else:
-            # Style neutre plus adaptatif selon le contexte
-            if len(text.split()) <= 3:
-                style = "concis"
-                emoji = "💬"
-            elif any(word in text_lower for word in ["bonjour", "salut", "hello", "bonsoir"]):
+            # Style neutre plus adaptatif selon le contexte - PRIORITÉ AUX SALUTATIONS
+            if any(word in text_lower for word in ["bonjour", "salut", "hello", "bonsoir"]):
                 style = "cordial"
                 emoji = "👋"
             elif any(word in text_lower for word in ["merci", "ok", "d'accord", "très bien"]):
                 style = "approbateur"
                 emoji = "👍"
+            elif len(text.split()) <= 3:
+                style = "concis"
+                emoji = "💬"
             else:
                 style = "neutre"
                 emoji = "😐"
