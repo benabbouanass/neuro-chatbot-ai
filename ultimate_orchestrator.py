@@ -104,7 +104,7 @@ Sois un vrai assistant commercial dynamique et personnalisé !"""
         data = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": self.get_dynamic_system_prompt()},
+                {"role": "system", "content": self.get_professional_system_prompt()},
                 {"role": "user", "content": user_prompt}
             ],
             "max_tokens": 150,
@@ -126,11 +126,11 @@ Sois un vrai assistant commercial dynamique et personnalisé !"""
                         return bot_response.strip()
             
             print(f"⚠️ API Response Error: {response.status_code}")
-            return self.get_dynamic_fallback(user_input, lead_type, prefix, style)
+            return self._get_dynamic_fallback(user_input, lead_type, prefix, style)
                 
         except Exception as e:
             print(f"⚠️ Erreur API: {e}")
-            return self.get_dynamic_fallback(user_input, lead_type, prefix, style)
+            return self._get_dynamic_fallback(user_input, lead_type, prefix, style)
     
     def detect_question_type(self, text: str) -> str:
         """Détecte le type de question pour adapter la réponse"""
@@ -191,6 +191,34 @@ Sois un vrai assistant commercial dynamique et personnalisé !"""
         
         return prompts.get(question_type, prompts["general"])
     
+    def _get_dynamic_fallback(self, user_input: str, lead_type: str, prefix: str, style: str) -> str:
+        """Réponses de secours dynamiques et commerciales"""
+        
+        text_lower = user_input.lower()
+        
+        # Détection de mots-clés pour réponses spécifiques
+        if any(word in text_lower for word in ["produit", "préparer", "arrive", "commande"]):
+            if lead_type == "Hot":
+                return f"{prefix} — Parfait ! Je prépare votre commande immédiatement. Quel produit spécifiquement ? Basic (99€), Pro (199€) ou Premium (299€) ? Je lance la préparation dès confirmation !"
+            else:
+                return f"{prefix} — Excellent ! Je peux préparer votre solution personnalisée. Dites-moi quel type de produit vous intéresse et je vous prépare tout ça !"
+        
+        if any(word in text_lower for word in ["marketing", "digital", "influence", "contenu", "réseaux", "croissance"]):
+            return f"{prefix} — Excellente question sur le marketing ! C'est exactement notre expertise. Vous cherchez plutôt : acquisition de clients, conversion, ou fidélisation ? Chaque stratégie a ses spécificités selon votre secteur."
+        
+        if any(word in text_lower for word in ["information", "détails", "expliquer", "comment"]):
+            return f"{prefix} — Avec plaisir ! Je suis là pour vous éclairer. Que souhaitez-vous découvrir en priorité : nos solutions, nos tarifs, ou nos méthodes ? Je m'adapte à vos besoins !"
+        
+        # Réponses par type de lead
+        if lead_type == "Hot":
+            return f"{prefix} — Je sens votre motivation ! Nos solutions sont disponibles immédiatement. Voulez-vous que je vous prépare un devis personnalisé ou préférez-vous une démo rapide ?"
+        elif lead_type == "Warm":
+            return f"{prefix} — Votre intérêt me fait plaisir ! Pour mieux vous conseiller, dites-moi : quel est votre principal défi business actuellement ? Je peux vous proposer une solution sur-mesure."
+        elif lead_type == "Cold":
+            return f"{prefix} — Je comprends votre position. Aucune pression de ma part. Si vos besoins évoluent, je reste disponible pour vous accompagner avec expertise."
+        else:
+            return f"{prefix} — Je suis là pour vous aider ! Que puis-je faire pour vous aujourd'hui ? Solutions, conseils, ou simplement répondre à vos questions ?"uestion_type, prompts["general"])
+    
     def get_professional_fallback(self, user_input: str, question_type: str, lead_type: str, prefix: str, style: str) -> str:
         """Réponses de secours professionnelles par type"""
         
@@ -214,17 +242,7 @@ Sois un vrai assistant commercial dynamique et personnalisé !"""
         
         return fallbacks.get(question_type, fallbacks["general"])
     
-    def get_commercial_fallback(self, lead_type: str, prefix: str) -> str:
-        """Réponses commerciales adaptées au type de lead"""
-        
-        if lead_type == "Hot":
-            return f"{prefix} — Parfait ! Je sens votre motivation. Nos solutions sont disponibles immédiatement : Basic (99€), Pro (199€), Premium (299€). Laquelle correspond à vos besoins ?"
-        elif lead_type == "Warm":
-            return f"{prefix} — Votre intérêt me fait plaisir ! Pour mieux vous conseiller, dites-moi : quel est votre principal défi actuellement ?"
-        elif lead_type == "Cold":
-            return f"{prefix} — Je respecte votre position. Aucune pression de ma part. Si vos besoins évoluent, je reste disponible pour vous accompagner."
-        else:
-            return f"{prefix} — Je suis là pour vous renseigner sur nos solutions. Que souhaiteriez-vous découvrir en priorité ?"
+
     
     def analyze_speaking_style(self, text: str) -> Dict[str, Any]:
         """Analyse du style de communication (code existant conservé)"""
