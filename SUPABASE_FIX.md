@@ -24,13 +24,13 @@ DB_HOST = "aws-0-eu-central-1.pooler.supabase.com"
 3. **Connection string** → **URI**
 4. Copiez l'host entre `postgresql://` et `:5432`
 
-## 🚀 Format complet des secrets
+## 🚀 Configuration pour votre projet
 
 ```toml
-DB_HOST = "aws-0-eu-central-1.pooler.supabase.com"
+DB_HOST = "db.vhnujinxfqlnrclxckud.supabase.co"
 DB_NAME = "postgres"
-DB_USER = "postgres.xxxxx"
-DB_PASSWORD = "votre-mot-de-passe"
+DB_USER = "postgres"
+DB_PASSWORD = "@@@Yasmina12345@"
 DB_PORT = "5432"
 ```
 
