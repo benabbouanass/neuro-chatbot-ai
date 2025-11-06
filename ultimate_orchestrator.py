@@ -49,29 +49,52 @@ STYLES D'ADAPTATION:
 Tu es un professionnel qui sait s'adapter à chaque situation."""
 
     def get_enhanced_response(self, user_input: str, emotion: str, lead_type: str, style: str, style_emoji: str) -> str:
-        """Génère une réponse professionnelle améliorée"""
+        """Génère une réponse dynamique via l'API"""
         
-        # Détection du type de question
-        question_type = self.detect_question_type(user_input)
-        
-        # Préfixe comportemental
+        # Préfixes comportementaux
         prefixes = {
-            "pressé": f"Je comprends votre urgence {style_emoji}",
-            "autoritaire": f"Je respecte votre approche directe {style_emoji}",
+            "pressé": f"Je sens votre urgence {style_emoji}",
+            "autoritaire": f"Je respecte votre détermination {style_emoji}",
             "poli": f"J'apprécie votre courtoisie {style_emoji}",
             "réfléchi": f"Je vois que vous réfléchissez {style_emoji}",
             "enthousiaste": f"J'aime votre énergie {style_emoji}",
-            "énergique": f"Votre dynamisme est motivant {style_emoji}",
+            "énergique": f"Votre dynamisme me motive {style_emoji}",
             "concis": f"J'apprécie votre approche directe {style_emoji}",
-            "cordial": f"Ravi de vous aider {style_emoji}",
+            "cordial": f"Ravi de vous rencontrer {style_emoji}",
             "approbateur": f"Parfait, merci {style_emoji}",
             "neutre": f"Je suis à votre écoute {style_emoji}"
         }
         
         prefix = prefixes.get(style, f"Je note votre message {style_emoji}")
         
-        # Prompt adapté selon le type de question et style
-        user_prompt = self.build_contextual_prompt(user_input, question_type, lead_type, style, prefix)
+        # Contexte commercial selon le type de lead
+        lead_context = {
+            "Hot": "Le client veut ACHETER. Sois direct, propose des solutions immédiates, des prix, des actions concrètes.",
+            "Warm": "Le client est INTÉRESSÉ. Qualifie ses besoins, pose des questions intelligentes, nourris son intérêt.",
+            "Cold": "Le client REFUSE ou est distant. Reste poli, professionnel, laisse la porte ouverte.",
+            "Interested": "Le client HÉSITE. Rassure-le, donne des bénéfices concrets, sans pression.",
+            "Unqualified": "Statut INDÉTERMINÉ. Qualifie ses besoins, découvre ses défis, propose ton aide."
+        }
+        
+        # Prompt utilisateur dynamique et spécifique
+        user_prompt = f"""CONTEXTE CLIENT:
+- Message: "{user_input}"
+- Style détecté: {style} 
+- Type de lead: {lead_type}
+- Émotion: {emotion}
+
+INSTRUCTION:
+{lead_context.get(lead_type, lead_context["Unqualified"])}
+
+RÉPONSE REQUISE:
+Commence OBLIGATOIREMENT par: "{prefix} —"
+Puis réponds de manière naturelle, commerciale et adaptée au style {style}.
+
+Exemples selon le message:
+- "Pouvez-vous me préparer le produit ? J'arrive" → Réponse urgente avec action immédiate
+- "J'ai besoin d'infos sur le marketing digital" → Réponse experte avec questions qualifiantes
+
+Sois un vrai assistant commercial dynamique et personnalisé !"""
         
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -81,11 +104,12 @@ Tu es un professionnel qui sait s'adapter à chaque situation."""
         data = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": self.get_professional_system_prompt()},
+                {"role": "system", "content": self.get_dynamic_system_prompt()},
                 {"role": "user", "content": user_prompt}
             ],
-            "max_tokens": 200,
-            "temperature": 0.7
+            "max_tokens": 150,
+            "temperature": 0.8,
+            "top_p": 0.9
         }
         
         try:
@@ -96,13 +120,17 @@ Tu es un professionnel qui sait s'adapter à chaque situation."""
                 if "choices" in result and len(result["choices"]) > 0:
                     bot_response = result["choices"][0]["message"].get("content", "")
                     if bot_response and bot_response.strip():
+                        # Vérifier que la réponse commence par le préfixe
+                        if not bot_response.startswith(prefix):
+                            bot_response = f"{prefix} — {bot_response}"
                         return bot_response.strip()
             
-            return self.get_professional_fallback(user_input, question_type, lead_type, prefix, style)
+            print(f"⚠️ API Response Error: {response.status_code}")
+            return self.get_dynamic_fallback(user_input, lead_type, prefix, style)
                 
         except Exception as e:
             print(f"⚠️ Erreur API: {e}")
-            return self.get_professional_fallback(user_input, question_type, lead_type, prefix, style)
+            return self.get_dynamic_fallback(user_input, lead_type, prefix, style)
     
     def detect_question_type(self, text: str) -> str:
         """Détecte le type de question pour adapter la réponse"""
