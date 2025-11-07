@@ -1,23 +1,24 @@
-"""Interface utilisateur professionnelle pour Neuro-Chatbot AI"""
+"""Interface SaaS professionnelle pour Neuro-Chatbot AI"""
 
 import streamlit as st
 from ultimate_orchestrator import orchestrator
 from database import db_manager
-# from enhanced_dashboard import render_dashboard  # Not needed for this version
 from premium_analytics import render_premium_analytics
 from enhanced_styles import get_advanced_css
 import re
+import uuid
+from datetime import datetime
 
 # Configuration de la page
 st.set_page_config(
-    page_title="🧠 Neuro-Chatbot AI - Professional",
+    page_title="🧠 Neuro-Chatbot AI - Professional SaaS",
     page_icon="🧠",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 def get_professional_css():
-    """CSS professionnel ultra-moderne"""
+    """CSS professionnel ultra-moderne pour interface SaaS"""
     return """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -60,17 +61,6 @@ def get_professional_css():
         box-shadow: var(--shadow-xl);
         position: relative;
         overflow: hidden;
-    }
-    
-    .pro-header::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
-        opacity: 0.3;
     }
     
     .pro-header h1 {
@@ -122,7 +112,7 @@ def get_professional_css():
         border-color: var(--primary);
     }
     
-    /* Chat interface moderne */
+    /* Chat container moderne */
     .chat-container {
         background: var(--glass);
         backdrop-filter: blur(20px);
@@ -131,7 +121,20 @@ def get_professional_css():
         padding: 2rem;
         margin: 1rem 0;
         box-shadow: var(--shadow-lg);
-        min-height: 500px;
+        min-height: 600px;
+        max-height: 800px;
+        overflow-y: auto;
+    }
+    
+    /* Messages de conversation */
+    .conversation-history {
+        max-height: 400px;
+        overflow-y: auto;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 15px;
+        border: 1px solid var(--glass-border);
     }
     
     .message-user {
@@ -156,6 +159,13 @@ def get_professional_css():
         box-shadow: var(--shadow-lg);
         animation: slideInLeft 0.3s ease;
         position: relative;
+    }
+    
+    .message-timestamp {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+        opacity: 0.7;
     }
     
     /* Métriques modernes */
@@ -238,10 +248,21 @@ def get_professional_css():
         box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4) !important;
     }
     
-    /* Sidebar professionnelle */
-    .css-1d391kg {
-        background: linear-gradient(180deg, var(--dark-light) 0%, var(--dark) 100%) !important;
-        border-right: 1px solid var(--glass-border) !important;
+    /* Status indicators */
+    .status-online {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: var(--success);
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
     
     /* Animations */
@@ -264,39 +285,11 @@ def get_professional_css():
         animation: fadeInUp 0.6s ease;
     }
     
-    /* Status indicators */
-    .status-online {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        background: var(--success);
-        border-radius: 50%;
-        margin-right: 0.5rem;
-        animation: pulse 2s infinite;
-    }
-    
-    @keyframes pulse {
-        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-    
-    /* Boutons de défi */
-    .stButton > button {
-        height: auto !important;
-        white-space: pre-line !important;
-        text-align: center !important;
-        padding: 1rem !important;
-        min-height: 80px !important;
-        font-size: 0.9rem !important;
-    }
-    
     /* Responsive */
     @media (max-width: 768px) {
         .pro-header h1 { font-size: 2rem; }
         .message-user, .message-bot { margin-left: 5%; margin-right: 5%; }
         .pro-card { padding: 1.5rem; }
-        .stButton > button { min-height: 70px !important; font-size: 0.8rem !important; }
     }
     </style>
     """
@@ -333,6 +326,7 @@ def auth_section():
                         user = db_manager.get_user_by_email(email)
                         if user:
                             st.session_state.user = user
+                            st.session_state.conversation_history = []
                             st.success(f"Bienvenue {user['first_name']} ! 👋")
                             st.rerun()
                         else:
@@ -366,6 +360,7 @@ def auth_section():
                                 'email': email
                             }
                             st.session_state.user = user
+                            st.session_state.conversation_history = []
                             st.success(f"Compte créé ! Bienvenue {first_name} ! 🎉")
                             st.rerun()
                         else:
@@ -399,6 +394,8 @@ def main_app():
         
         if st.button("🚪 Déconnexion", use_container_width=True):
             del st.session_state.user
+            if 'conversation_history' in st.session_state:
+                del st.session_state.conversation_history
             st.rerun()
         
         st.markdown("---")
@@ -417,7 +414,11 @@ def main_app():
         user_stats(user)
 
 def chat_interface(user):
-    """Interface de chat professionnelle"""
+    """Interface de chat professionnelle avec historique de conversation"""
+    
+    # Initialiser l'historique de conversation
+    if 'conversation_history' not in st.session_state:
+        st.session_state.conversation_history = []
     
     # Défis IA interactifs
     st.markdown('<div class="pro-card fade-in-up">', unsafe_allow_html=True)
@@ -441,9 +442,27 @@ def chat_interface(user):
     
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Interface de chat
+    # Interface de chat avec historique
     st.markdown('<div class="chat-container fade-in-up">', unsafe_allow_html=True)
     
+    # Affichage de l'historique de conversation
+    if st.session_state.conversation_history:
+        st.markdown('<div class="conversation-history">', unsafe_allow_html=True)
+        st.markdown("### 💬 Historique de la conversation")
+        
+        for msg in st.session_state.conversation_history:
+            timestamp = msg.get('timestamp', '')
+            st.markdown(f'<div class="message-user">👤 {msg["user_message"]}<div class="message-timestamp">{timestamp}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="message-bot">🤖 {msg["bot_response"]}<div class="message-timestamp">Lead: {msg.get("lead_type", "Unknown")} | Style: {msg.get("style", "neutre")}</div></div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Bouton pour effacer l'historique
+        if st.button("🗑️ Effacer l'historique", key="clear_history"):
+            st.session_state.conversation_history = []
+            st.rerun()
+    
+    # Formulaire de chat
     with st.form("chat_form", clear_on_submit=True):
         col1, col2 = st.columns([5, 1])
         
@@ -458,9 +477,6 @@ def chat_interface(user):
                 placeholder=placeholder,
                 label_visibility="collapsed"
             )
-            # Garder les valeurs pour l'envoi
-            if "test_message" in st.session_state and not user_input:
-                pass  # Garder le message jusqu'à l'envoi
         
         with col2:
             submitted = st.form_submit_button("🚀 Envoyer", use_container_width=True)
@@ -475,7 +491,25 @@ def chat_interface(user):
         with st.spinner("🧠 Analyse en cours..."):
             result = orchestrator.process_message(user_input)
             
-            # Sauvegarde
+            # Ajouter à l'historique de conversation
+            conversation_entry = {
+                'id': str(uuid.uuid4()),
+                'user_message': user_input,
+                'bot_response': result["bot_response"],
+                'emotion': result["emotion_data"].get("emotion"),
+                'lead_type': result["lead_data"].get("lead_type"),
+                'confidence': result["lead_data"].get("confidence"),
+                'style': result.get("style_data", {}).get("style"),
+                'timestamp': datetime.now().strftime("%H:%M:%S")
+            }
+            
+            st.session_state.conversation_history.append(conversation_entry)
+            
+            # Limiter l'historique à 10 messages
+            if len(st.session_state.conversation_history) > 10:
+                st.session_state.conversation_history = st.session_state.conversation_history[-10:]
+            
+            # Sauvegarde en base de données
             db_manager.save_conversation(
                 user['id'], user_input, result["bot_response"],
                 result["emotion_data"].get("emotion"),
@@ -484,11 +518,11 @@ def chat_interface(user):
                 result.get("style_data", {}).get("style")
             )
             
-            # Affichage des messages
-            st.markdown(f'<div class="message-user">👤 {user_input}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="message-bot">🤖 {result["bot_response"]}</div>', unsafe_allow_html=True)
+            # Affichage du nouveau message
+            st.markdown(f'<div class="message-user">👤 {user_input}<div class="message-timestamp">{conversation_entry["timestamp"]}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="message-bot">🤖 {result["bot_response"]}<div class="message-timestamp">Lead: {result["lead_data"].get("lead_type")} | Style: {result.get("style_data", {}).get("style")}</div></div>', unsafe_allow_html=True)
             
-            # Métriques
+            # Métriques en temps réel
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
@@ -555,6 +589,24 @@ def user_stats(user):
             <div class="metric-pro">
                 <div class="metric-label">Leads Hot</div>
                 <div class="metric-value">{hot_leads}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            warm_leads = len([c for c in conversations if c.get('lead_type') == 'Warm'])
+            st.markdown(f"""
+            <div class="metric-pro">
+                <div class="metric-label">Leads Warm</div>
+                <div class="metric-value">{warm_leads}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            avg_confidence = sum([c.get('confidence', 0) for c in conversations]) / len(conversations) if conversations else 0
+            st.markdown(f"""
+            <div class="metric-pro">
+                <div class="metric-label">Confiance Moy.</div>
+                <div class="metric-value">{avg_confidence:.0%}</div>
             </div>
             """, unsafe_allow_html=True)
     else:
