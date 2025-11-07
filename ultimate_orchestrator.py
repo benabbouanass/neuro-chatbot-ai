@@ -295,6 +295,9 @@ class UltimateOrchestrator:
         elif unqualified_score >= 1:
             return {"lead_type": "Unqualified", "confidence": 0.4}
         else:
+            # Détection des questions ouvertes pour éviter les réponses génériques
+            if any(word in text_lower for word in ["quoi", "comment", "pourquoi", "quelle", "qu'est-ce que", "faire"]):
+                return {"lead_type": "Interested", "confidence": 0.65}
             return {"lead_type": "Unqualified", "confidence": 0.3}
     
     def get_ultimate_response(self, user_input: str, emotion: str, lead_type: str, style: str, style_emoji: str) -> str:
@@ -357,11 +360,9 @@ Commence directement par une réponse pertinente et engageante."""
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "max_tokens": 250,
-            "temperature": 0.9,
-            "top_p": 0.95,
-            "frequency_penalty": 0.3,
-            "presence_penalty": 0.3
+            "max_tokens": 200,
+            "temperature": 0.7,
+            "top_p": 0.9
         }
         
         try:
@@ -398,6 +399,16 @@ Commence directement par une réponse pertinente et engageante."""
     def _get_dynamic_fallback(self, user_input: str, lead_type: str, style: str, context_info: str) -> str:
         """Réponses de secours dynamiques et conversationnelles"""
         
+        text_lower = user_input.lower()
+        
+        # Détection spécifique pour les questions courantes
+        if any(word in text_lower for word in ["quoi", "faire", "qu'est-ce que"]):
+            return "Nous aidons les entreprises à développer leur marketing digital via l'influence, le contenu et les réseaux sociaux. Quel est votre objectif principal ?"
+        elif any(word in text_lower for word in ["bonjour", "salut", "hello"]):
+            return "Bonjour ! Ravi de vous rencontrer. Parlez-moi de vos besoins en marketing digital."
+        elif any(word in text_lower for word in ["comment", "pourquoi"]):
+            return "Excellente question ! Nous proposons des stratégies personnalisées selon vos besoins. Dans quel domaine souhaitez-vous vous développer ?"
+        
         responses = {
             "Hot": [
                 "Parfait ! Je vois que vous êtes prêt à passer à l'action. Nos solutions de marketing digital sont disponibles immédiatement. Quel est votre objectif principal : augmenter vos ventes, votre visibilité ou votre audience ?",
@@ -418,8 +429,8 @@ Commence directement par une réponse pertinente et engageante."""
         }
         
         fallback_responses = responses.get(lead_type, [
-            "Merci pour votre message ! Je suis là pour vous accompagner dans votre développement marketing. Pouvez-vous me parler de vos objectifs actuels ?",
-            "Ravi de pouvoir vous aider ! Pour mieux vous conseiller, dites-moi quel aspect du marketing digital vous intéresse le plus ?"
+            "Merci pour votre message ! Pourriez-vous préciser vos besoins ?",
+            "Je suis là pour vous aider ! Dites-moi sur quel aspect du marketing digital vous souhaitez vous concentrer."
         ])
         
         import random
