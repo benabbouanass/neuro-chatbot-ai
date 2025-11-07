@@ -3,6 +3,7 @@
 import requests
 import json
 import re
+import random
 from typing import Dict, Any
 from utils.config import HUGGINGFACE_API_KEY
 from enhanced_styles import get_animated_emoji, get_style_prefix
@@ -11,7 +12,7 @@ class UltimateOrchestrator:
     """Orchestrateur avec analyse complète : tonalité, urgence, politesse, confiance"""
     
     def __init__(self):
-        self.api_key = "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"
+        self.api_key = "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"
         self.url = "https://openrouter.ai/api/v1/chat/completions"
         self.model = "meta-llama/llama-3.2-3b-instruct:free"
         self.hf_key = HUGGINGFACE_API_KEY
@@ -396,45 +397,144 @@ Commence directement par une réponse pertinente et engageante."""
         else:
             return "Qualification des besoins"
     
+    def _detect_message_category(self, text: str) -> str:
+        """Détecte la catégorie du message pour un fallback ciblé"""
+        text_lower = text.lower()
+        
+        # Catégorie COMMANDE/ACHAT
+        if any(word in text_lower for word in ["commande", "acheter", "devis", "passer commande", "commander", "prendre", "souscrire"]):
+            return "commande"
+        
+        # Catégorie INFOS ENTREPRISE
+        elif any(word in text_lower for word in ["faites quoi", "proposez", "services", "qu'est-ce que", "votre entreprise", "activité"]):
+            return "infos"
+        
+        # Catégorie FONCTIONNEMENT
+        elif any(word in text_lower for word in ["comment ça marche", "fonctionnement", "process", "étapes", "déroulement"]):
+            return "fonctionnement"
+        
+        # Catégorie TARIFS
+        elif any(word in text_lower for word in ["prix", "tarif", "coût", "combien", "budget", "facture"]):
+            return "tarifs"
+        
+        # Catégorie RÉSEAUX SOCIAUX
+        elif any(word in text_lower for word in ["instagram", "facebook", "linkedin", "tiktok", "réseaux sociaux", "visibilité"]):
+            return "reseaux"
+        
+        # Catégorie URGENCE
+        elif any(word in text_lower for word in ["urgent", "vite", "rapidement", "pressé", "immédiatement"]):
+            return "urgence"
+        
+        # Catégorie COMPARAISON
+        elif any(word in text_lower for word in ["compare", "concurrence", "différence", "mieux", "avantage"]):
+            return "comparaison"
+        
+        # Catégorie SALUTATIONS
+        elif any(word in text_lower for word in ["bonjour", "salut", "hello", "bonsoir", "hey"]):
+            return "salutation"
+        
+        # Catégorie E-COMMERCE
+        elif any(word in text_lower for word in ["e-commerce", "boutique en ligne", "vente en ligne", "site web"]):
+            return "ecommerce"
+        
+        # Catégorie AIDE GÉNÉRALE
+        elif any(word in text_lower for word in ["aide", "aider", "conseil", "accompagnement", "support"]):
+            return "aide"
+        
+        return "unknown"
+    
     def _get_dynamic_fallback(self, user_input: str, lead_type: str, style: str, context_info: str) -> str:
-        """Réponses de secours dynamiques et conversationnelles"""
+        """Système de fallback renforcé avec catégorisation intelligente"""
         
-        text_lower = user_input.lower()
+        category = self._detect_message_category(user_input)
         
-        # Détection spécifique pour les questions courantes
-        if any(word in text_lower for word in ["quoi", "faire", "qu'est-ce que"]):
-            return "Nous aidons les entreprises à développer leur marketing digital via l'influence, le contenu et les réseaux sociaux. Quel est votre objectif principal ?"
-        elif any(word in text_lower for word in ["bonjour", "salut", "hello"]):
-            return "Bonjour ! Ravi de vous rencontrer. Parlez-moi de vos besoins en marketing digital."
-        elif any(word in text_lower for word in ["comment", "pourquoi"]):
-            return "Excellente question ! Nous proposons des stratégies personnalisées selon vos besoins. Dans quel domaine souhaitez-vous vous développer ?"
-        
-        responses = {
-            "Hot": [
-                "Parfait ! Je vois que vous êtes prêt à passer à l'action. Nos solutions de marketing digital sont disponibles immédiatement. Quel est votre objectif principal : augmenter vos ventes, votre visibilité ou votre audience ?",
-                "Excellent timing ! Nous avons justement des créneaux disponibles cette semaine. Pour vous proposer la solution la plus adaptée, parlez-moi de votre secteur d'activité ?"
+        # Réponses catégorisées avec variations
+        categorized_responses = {
+            "commande": [
+                "Parfait ! Voyons ensemble vos besoins : augmenter vos ventes, votre visibilité ou votre audience ?",
+                "Excellent ! Nous avons des créneaux disponibles cette semaine. Pouvez-vous préciser votre secteur d'activité ?",
+                "Super ! Pour préparer votre offre personnalisée, dites-moi quel est votre objectif principal ?"
             ],
-            "Warm": [
-                "Je comprends votre intérêt pour le marketing digital ! C'est effectivement un levier puissant pour la croissance. Dites-moi, quel est votre plus grand défi actuellement : générer plus de leads, fidéliser vos clients ou développer votre notoriété ?",
-                "Très bonne question ! Le marketing digital offre de nombreuses possibilités. Pour vous orienter au mieux, pouvez-vous me parler de votre entreprise et de vos objectifs ?"
+            "infos": [
+                "Nous aidons les entreprises à développer leur marketing digital via le contenu, les réseaux sociaux et l'influence. Quel domaine vous intéresse le plus ?",
+                "Nos solutions couvrent marketing digital, réseaux sociaux et stratégies de croissance. Quel est votre objectif principal ?",
+                "Nous sommes spécialisés dans le marketing digital : influence, contenu, réseaux sociaux. Sur quoi souhaitez-vous vous concentrer ?"
             ],
-            "Cold": [
-                "Je respecte totalement votre position. Pas de pression de ma part ! Si jamais vos priorités évoluent, n'hésitez pas à revenir vers moi.",
-                "Aucun souci, je comprends parfaitement. Gardez mes coordonnées au cas où vos besoins changeraient à l'avenir."
+            "fonctionnement": [
+                "Excellente question ! Nous proposons des stratégies personnalisées selon vos besoins. Sur quel domaine souhaitez-vous vous développer ?",
+                "Tout dépend de vos objectifs : augmenter votre audience, vos ventes ou votre visibilité ? Que préférez-vous ?",
+                "Notre approche s'adapte à chaque entreprise. Pouvez-vous me parler de vos défis actuels ?"
             ],
-            "Interested": [
-                "C'est tout à fait normal de prendre le temps de réfléchir ! Le marketing digital est un investissement important. Avez-vous des questions spécifiques qui pourraient vous aider dans votre réflexion ?",
-                "Je comprends votre hésitation, c'est une décision importante. Puis-je vous poser quelques questions pour mieux cerner vos attentes ?"
+            "tarifs": [
+                "Bien sûr ! Pour vous proposer un devis précis, pouvez-vous me donner quelques détails sur votre projet ?",
+                "Nos tarifs s'adaptent à vos besoins. Quel type de marketing digital vous intéresse : contenu, réseaux sociaux ou influence ?",
+                "Je peux vous établir un devis personnalisé. Parlez-moi de votre entreprise et de vos objectifs ?"
+            ],
+            "reseaux": [
+                "Nous avons des stratégies adaptées à chaque réseau ! Sur quel objectif voulez-vous vous concentrer : audience ou ventes ?",
+                "Très bonne question ! Préférez-vous un accompagnement global ou ciblé sur un réseau en particulier ?",
+                "Les réseaux sociaux sont notre spécialité ! Quel est votre défi principal : contenu, engagement ou croissance ?"
+            ],
+            "urgence": [
+                "Parfait ! Voyons ensemble vos besoins rapidement : visibilité, audience ou ventes ?",
+                "Excellent timing ! Nous pouvons accélérer le processus. Quel est votre objectif principal ?",
+                "Compris ! Pour agir vite et bien, dites-moi quel est votre besoin le plus urgent ?"
+            ],
+            "comparaison": [
+                "Je comprends votre démarche de comparaison. Pour mieux vous conseiller, pouvez-vous me parler de vos attentes principales ?",
+                "Chaque entreprise est unique ! Pouvez-vous préciser vos objectifs pour que je vous propose la meilleure solution ?",
+                "Excellente approche ! Dites-moi quels sont vos critères les plus importants ?"
+            ],
+            "salutation": [
+                "Bonjour ! Ravi de vous rencontrer. Je suis Neuro, votre assistant marketing digital. Comment puis-je vous aider ?",
+                "Salut ! Enchanté de faire votre connaissance. Parlez-moi de vos besoins en marketing digital !",
+                "Hello ! Bienvenue ! Je suis là pour vous accompagner dans votre développement digital. Que puis-je faire pour vous ?"
+            ],
+            "ecommerce": [
+                "Parfait ! L'e-commerce est notre domaine d'expertise. Votre priorité : augmenter le trafic, les conversions ou la fidélisation ?",
+                "Excellent ! Pour les boutiques en ligne, nous proposons des stratégies complètes. Quel est votre principal défi actuellement ?",
+                "Super ! Le marketing digital est essentiel pour l'e-commerce. Souhaitez-vous travailler sur l'acquisition ou la rétention ?"
+            ],
+            "aide": [
+                "Je suis là pour vous accompagner ! Que souhaitez-vous développer : votre présence sur les réseaux sociaux, votre stratégie de contenu, ou votre marketing d'influence ?",
+                "Avec plaisir ! Dites-moi quel aspect du marketing digital vous pose le plus de difficultés ?",
+                "Bien sûr ! Pour mieux vous orienter, pouvez-vous me préciser vos objectifs marketing ?"
             ]
         }
         
-        fallback_responses = responses.get(lead_type, [
-            "Merci pour votre message ! Pourriez-vous préciser vos besoins ?",
-            "Je suis là pour vous aider ! Dites-moi sur quel aspect du marketing digital vous souhaitez vous concentrer."
-        ])
+        # Réponses par type de lead (si catégorie inconnue)
+        lead_responses = {
+            "Hot": [
+                "Parfait ! Je vois que vous êtes motivé. Nos solutions sont disponibles immédiatement. Quel est votre objectif : ventes, visibilité ou audience ?",
+                "Excellent ! Nous pouvons démarrer rapidement. Pour vous proposer la meilleure solution, parlez-moi de votre secteur ?"
+            ],
+            "Warm": [
+                "Je comprends votre intérêt ! Le marketing digital est effectivement un levier puissant. Quel est votre plus grand défi : leads, fidélisation ou notoriété ?",
+                "Très bonne approche ! Pour vous orienter au mieux, pouvez-vous me parler de votre entreprise ?"
+            ],
+            "Cold": [
+                "Je respecte votre position. Aucune pression ! Si vos besoins évoluent, je reste disponible.",
+                "Pas de souci, je comprends. Gardez mes coordonnées si vos priorités changent."
+            ],
+            "Interested": [
+                "C'est normal de prendre son temps ! Avez-vous des questions spécifiques pour vous aider dans votre réflexion ?",
+                "Je comprends votre hésitation. Puis-je vous poser quelques questions pour mieux cerner vos attentes ?"
+            ]
+        }
         
+        # Sélection de la réponse
         import random
-        return random.choice(fallback_responses)
+        
+        if category != "unknown":
+            return random.choice(categorized_responses[category])
+        else:
+            # Fallback par type de lead
+            responses = lead_responses.get(lead_type, [
+                "Merci pour votre message ! Pour mieux vous conseiller, pouvez-vous préciser vos besoins ?",
+                "Intéressant ! Dites-moi sur quel aspect du marketing digital vous souhaitez vous concentrer ?",
+                "Je suis là pour vous aider ! Quel est votre objectif principal en marketing digital ?"
+            ])
+            return random.choice(responses)
     
     def add_to_context(self, user_input: str, bot_response: str):
         """Ajoute l'échange au contexte conversationnel"""
