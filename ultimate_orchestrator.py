@@ -15,6 +15,7 @@ class UltimateOrchestrator:
         self.url = "https://openrouter.ai/api/v1/chat/completions"
         self.model = "meta-llama/llama-3.2-3b-instruct:free"
         self.hf_key = HUGGINGFACE_API_KEY
+        self.conversation_context = []  # Historique conversationnel
     
     def analyze_speaking_style(self, text: str) -> Dict[str, Any]:
         """Analyse complète de la manière de parler"""
@@ -297,65 +298,53 @@ class UltimateOrchestrator:
             return {"lead_type": "Unqualified", "confidence": 0.3}
     
     def get_ultimate_response(self, user_input: str, emotion: str, lead_type: str, style: str, style_emoji: str) -> str:
-        """Génère une réponse avec prompt engineering avancé et few-shot learning"""
+        """Génère une réponse dynamique et conversationnelle avec l'API"""
         
-        # Préfixe comportemental selon le style détecté
-        prefixes = {
-            "pressé": f"Vous semblez pressé {style_emoji}",
-            "autoritaire": f"Je sens votre détermination {style_emoji}",
-            "poli": f"J'apprécie votre courtoisie {style_emoji}",
-            "réfléchi": f"Je vois que vous réfléchissez {style_emoji}",
-            "enthousiaste": f"Votre enthousiasme me plaît {style_emoji}",
-            "énergique": f"J'aime votre énergie {style_emoji}",
-            "concis": f"Je note votre approche directe {style_emoji}",
-            "cordial": f"Ravi de vous rencontrer {style_emoji}",
-            "approbateur": f"Parfait, je vous remercie {style_emoji}",
-            "neutre": f"Je suis à votre écoute {style_emoji}"
-        }
+        # Prompt système ultra-optimisé pour un ton commercial naturel
+        system_prompt = """Tu es Neuro, un assistant commercial IA expert en marketing digital.
+
+Ton rôle : Conseiller commercial empathique et professionnel qui aide les entreprises à développer leur marketing digital (influence, contenu, réseaux sociaux, croissance).
+
+Ton style de communication :
+✅ Naturel et conversationnel (jamais robotique)
+✅ Empathique et à l'écoute des besoins
+✅ Proactif avec des questions pertinentes
+✅ Commercial subtil (valorisation douce)
+✅ Adapté au style du client
+
+Tu proposes des solutions concrètes en :
+• Marketing d'influence
+• Marketing de contenu
+• Marketing sur réseaux sociaux
+• Stratégies de croissance digitale
+• Automatisation marketing
+
+Tu dois TOUJOURS :
+1. Reformuler/résumer ce que dit le client
+2. Poser une question qualifiante
+3. Proposer une valeur ajoutée
+4. Garder un ton humain et chaleureux"""
         
-        prefix = prefixes.get(style, f"Je note votre approche {style_emoji}")
+        # Prompt utilisateur contextualisé et dynamique avec historique
+        context_info = self._get_context_info(user_input, lead_type, style, emotion)
+        context_summary = self.get_context_summary()
         
-        # Prompt système optimisé avec few-shot learning
-        system_prompt = f"""Tu es Neuro, un assistant IA émotionnel et commercial expert.
-Ta mission : comprendre le ton, les émotions et les intentions du client.
-Tu adaptes ton vocabulaire, ton rythme et ton ton selon le style détecté :
-- pressé → concis et direct 🏃♂️
-- autoritaire → affirmé mais respectueux 😎  
-- réfléchi → doux, patient et explicatif 🤔
-- poli → courtois et professionnel 😊
-- enthousiaste → énergique et motivant 🎉
-- énergique → dynamique et engageant 💪
-- concis → efficace et précis 💬
-- cordial → chaleureux et accueillant 👋
-- approbateur → positif et encourageant 👍
-- neutre → adaptable et professionnel 😐
+        user_prompt = f"""CLIENT: "{user_input}"
 
-Tu réponds toujours de manière professionnelle, empathique et efficace.
+{context_summary}
 
-EXEMPLES DE DIALOGUES RÉUSSIS :
+CONTEXTE ACTUEL:
+- Style: {style} ({emotion})
+- Intention: {lead_type}
+- Besoin probable: {context_info}
 
-Client pressé: "C'est urgent ! Quel est le prix ?"
-Neuro: "Vous semblez pressé 🏃♂️ — Parfait ! Notre solution premium est à 299€. Commande immédiate possible. Voulez-vous que je finalise maintenant ?"
+Réponds de manière naturelle et conversationnelle. Sois un vrai conseiller commercial qui comprend ses besoins en marketing digital.
 
-Client poli: "Bonjour, pourriez-vous m'aider s'il vous plaît ?"
-Neuro: "J'apprécie votre courtoisie 😊 — Bonjour ! Je serais ravi de vous accompagner. Que puis-je vous présenter aujourd'hui ?"
+Si c'est une suite de conversation, réfère-toi au contexte précédent.
 
-Client réfléchi: "Je pense que ça pourrait m'intéresser..."
-Neuro: "Je vois que vous réfléchissez 🤔 — C'est sage de prendre son temps. Puis-je vous poser quelques questions pour mieux comprendre vos besoins ?"
+NE commence PAS par des formules comme "Je suis à votre écoute" ou "Je note votre approche".
 
-Maintenant, réponds au client selon son style détecté."""
-        
-        # Prompt adapté au lead type avec contexte enrichi
-        if lead_type == "Hot":
-            user_prompt = f"Le client dit '{user_input}'. Style détecté: {style}. Il veut ACHETER. Réponds avec '{prefix} — ' puis propose une action d'achat concrète et urgente."
-        elif lead_type == "Warm":
-            user_prompt = f"Le client dit '{user_input}'. Style détecté: {style}. Il est INTÉRESSÉ. Réponds avec '{prefix} — ' puis pose des questions qualifiantes intelligentes."
-        elif lead_type == "Cold":
-            user_prompt = f"Le client dit '{user_input}'. Style détecté: {style}. Il REFUSE. Réponds avec '{prefix} — ' puis reste poli, respectueux et laisse la porte ouverte."
-        elif lead_type == "Interested":
-            user_prompt = f"Le client dit '{user_input}'. Style détecté: {style}. Il HÉSITE. Réponds avec '{prefix} — ' puis nourris sa curiosité sans pression."
-        else:
-            user_prompt = f"Le client dit '{user_input}'. Style détecté: {style}. Statut INDÉTERMINÉ. Réponds avec '{prefix} — ' puis qualifie ses besoins avec tact."
+Commence directement par une réponse pertinente et engageante."""
         
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -368,8 +357,11 @@ Maintenant, réponds au client selon son style détecté."""
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "max_tokens": 150,
-            "temperature": 0.6
+            "max_tokens": 250,
+            "temperature": 0.9,
+            "top_p": 0.95,
+            "frequency_penalty": 0.3,
+            "presence_penalty": 0.3
         }
         
         try:
@@ -382,28 +374,79 @@ Maintenant, réponds au client selon son style détecté."""
                     if bot_response and bot_response.strip():
                         return bot_response.strip()
             
-            return self._get_ultimate_fallback(user_input, lead_type, prefix)
+            return self._get_dynamic_fallback(user_input, lead_type, style, context_info)
                 
         except Exception as e:
             print(f"[WARNING] API Error: {e}")
-            return self._get_ultimate_fallback(user_input, lead_type, prefix)
+            return self._get_dynamic_fallback(user_input, lead_type, style, context_info)
     
-    def _get_ultimate_fallback(self, user_input: str, lead_type: str, prefix: str) -> str:
-        """Réponse de secours optimisée avec empathie et action claire"""
+    def _get_context_info(self, user_input: str, lead_type: str, style: str, emotion: str) -> str:
+        """Détermine le contexte probable du besoin client"""
+        text_lower = user_input.lower()
         
-        if lead_type == "Hot":
-            return f"{prefix} — Excellent ! Je sens votre motivation. Nos solutions sont disponibles immédiatement. Souhaitez-vous que je vous prépare une offre personnalisée maintenant ?"
-        elif lead_type == "Warm":
-            return f"{prefix} — Votre intérêt me fait plaisir ! Pour mieux vous conseiller, dites-moi : quel est votre défi principal actuellement ?"
-        elif lead_type == "Cold":
-            return f"{prefix} — Je comprends parfaitement votre position. Aucune pression de ma part. Si vos besoins évoluent, je reste disponible."
-        elif lead_type == "Interested":
-            return f"{prefix} — Votre réflexion est tout à fait légitime. Puis-je vous poser 2-3 questions rapides pour mieux cerner vos attentes ?"
+        if any(word in text_lower for word in ["marketing", "digital", "influence", "contenu", "réseaux", "croissance"]):
+            return "Stratégie marketing digital"
+        elif any(word in text_lower for word in ["produit", "service", "solution", "offre"]):
+            return "Découverte produit/service"
+        elif any(word in text_lower for word in ["prix", "tarif", "coût", "budget"]):
+            return "Information tarifaire"
+        elif any(word in text_lower for word in ["aide", "conseil", "accompagnement"]):
+            return "Besoin d'accompagnement"
         else:
-            return f"{prefix} — Je suis là pour vous aider ! Que puis-je faire pour vous aujourd'hui ?"
+            return "Qualification des besoins"
+    
+    def _get_dynamic_fallback(self, user_input: str, lead_type: str, style: str, context_info: str) -> str:
+        """Réponses de secours dynamiques et conversationnelles"""
+        
+        responses = {
+            "Hot": [
+                "Parfait ! Je vois que vous êtes prêt à passer à l'action. Nos solutions de marketing digital sont disponibles immédiatement. Quel est votre objectif principal : augmenter vos ventes, votre visibilité ou votre audience ?",
+                "Excellent timing ! Nous avons justement des créneaux disponibles cette semaine. Pour vous proposer la solution la plus adaptée, parlez-moi de votre secteur d'activité ?"
+            ],
+            "Warm": [
+                "Je comprends votre intérêt pour le marketing digital ! C'est effectivement un levier puissant pour la croissance. Dites-moi, quel est votre plus grand défi actuellement : générer plus de leads, fidéliser vos clients ou développer votre notoriété ?",
+                "Très bonne question ! Le marketing digital offre de nombreuses possibilités. Pour vous orienter au mieux, pouvez-vous me parler de votre entreprise et de vos objectifs ?"
+            ],
+            "Cold": [
+                "Je respecte totalement votre position. Pas de pression de ma part ! Si jamais vos priorités évoluent, n'hésitez pas à revenir vers moi.",
+                "Aucun souci, je comprends parfaitement. Gardez mes coordonnées au cas où vos besoins changeraient à l'avenir."
+            ],
+            "Interested": [
+                "C'est tout à fait normal de prendre le temps de réfléchir ! Le marketing digital est un investissement important. Avez-vous des questions spécifiques qui pourraient vous aider dans votre réflexion ?",
+                "Je comprends votre hésitation, c'est une décision importante. Puis-je vous poser quelques questions pour mieux cerner vos attentes ?"
+            ]
+        }
+        
+        fallback_responses = responses.get(lead_type, [
+            "Merci pour votre message ! Je suis là pour vous accompagner dans votre développement marketing. Pouvez-vous me parler de vos objectifs actuels ?",
+            "Ravi de pouvoir vous aider ! Pour mieux vous conseiller, dites-moi quel aspect du marketing digital vous intéresse le plus ?"
+        ])
+        
+        import random
+        return random.choice(fallback_responses)
+    
+    def add_to_context(self, user_input: str, bot_response: str):
+        """Ajoute l'échange au contexte conversationnel"""
+        self.conversation_context.append({
+            "user": user_input,
+            "bot": bot_response
+        })
+        # Garde seulement les 3 derniers échanges pour éviter la surcharge
+        if len(self.conversation_context) > 3:
+            self.conversation_context.pop(0)
+    
+    def get_context_summary(self) -> str:
+        """Résumé du contexte conversationnel"""
+        if not self.conversation_context:
+            return "Première interaction"
+        
+        context_str = "Contexte précédent:\n"
+        for exchange in self.conversation_context[-2:]:  # 2 derniers échanges
+            context_str += f"Client: {exchange['user']}\nNeuro: {exchange['bot']}\n"
+        return context_str
     
     def process_message(self, user_input: str) -> Dict[str, Any]:
-        """Pipeline ultime complet"""
+        """Pipeline ultime complet avec contexte conversationnel"""
         
         print(f"[PROCESSING] {user_input}")
         
@@ -423,9 +466,12 @@ Maintenant, réponds au client selon son style détecté."""
         lead_type = lead_data["lead_type"]
         print(f"[LEAD] {lead_type} (conf: {lead_data['confidence']:.2f})")
         
-        # 4. Réponse avec préfixe comportemental
+        # 4. Réponse avec contexte conversationnel
         bot_response = self.get_ultimate_response(user_input, emotion, lead_type, style, style_emoji)
         print(f"[RESPONSE] Generated successfully")
+        
+        # 5. Ajout au contexte pour les prochaines interactions
+        self.add_to_context(user_input, bot_response)
         
         return {
             "bot_response": bot_response,
@@ -440,7 +486,8 @@ Maintenant, réponds au client selon son style détecté."""
             "metadata": {
                 "pipeline": "ultimate",
                 "model": self.model,
-                "status": "success"
+                "status": "success",
+                "context_length": len(self.conversation_context)
             }
         }
 
