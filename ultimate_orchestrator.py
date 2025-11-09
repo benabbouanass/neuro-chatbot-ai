@@ -4,6 +4,7 @@ import requests
 import json
 import re
 import random
+import os
 from typing import Dict, Any
 from utils.config import HUGGINGFACE_API_KEY
 from enhanced_styles import get_animated_emoji, get_style_prefix
@@ -12,9 +13,19 @@ class UltimateOrchestrator:
     """Orchestrateur avec analyse complète : tonalité, urgence, politesse, confiance"""
     
     def __init__(self):
-        self.api_key = "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"
+        # Essayer Streamlit secrets d'abord, puis variables d'environnement
+        try:
+            import streamlit as st
+            self.api_key = st.secrets.get("OPENROUTER_API_KEY") or os.getenv("OPENROUTER_API_KEY")
+            self.groq_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+        except:
+            self.api_key = os.getenv("OPENROUTER_API_KEY")
+            self.groq_key = os.getenv("GROQ_API_KEY")
+        
         self.url = "https://openrouter.ai/api/v1/chat/completions"
+        self.groq_url = "https://api.groq.com/openai/v1/chat/completions"
         self.model = "meta-llama/llama-3.2-3b-instruct:free"
+        self.groq_model = "llama3-8b-8192"
         self.hf_key = HUGGINGFACE_API_KEY
         self.conversation_context = []  # Historique conversationnel
     
@@ -350,37 +361,72 @@ NE commence PAS par des formules comme "Je suis à votre écoute" ou "Je note vo
 
 Commence directement par une réponse pertinente et engageante."""
         
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "model": self.model,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "max_tokens": 200,
-            "temperature": 0.7,
-            "top_p": 0.9
-        }
-        
-        try:
-            response = requests.post(url=self.url, headers=headers, data=json.dumps(data), timeout=30)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if "choices" in result and len(result["choices"]) > 0:
-                    bot_response = result["choices"][0]["message"].get("content", "")
-                    if bot_response and bot_response.strip():
-                        return bot_response.strip()
-            
-            return self._get_dynamic_fallback(user_input, lead_type, style, context_info)
+        # Essai OpenRouter
+        if self.api_key:
+            try:
+                headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                }
                 
-        except Exception as e:
-            print(f"[WARNING] API Error: {e}")
-            return self._get_dynamic_fallback(user_input, lead_type, style, context_info)
+                data = {
+                    "model": self.model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "max_tokens": 200,
+                    "temperature": 0.7,
+                    "top_p": 0.9
+                }
+                
+                response = requests.post(url=self.url, headers=headers, data=json.dumps(data), timeout=30)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if "choices" in result and len(result["choices"]) > 0:
+                        bot_response = result["choices"][0]["message"].get("content", "")
+                        if bot_response and bot_response.strip():
+                            print("[SUCCESS] OpenRouter API")
+                            return bot_response.strip()
+                            
+            except Exception as e:
+                print(f"[WARNING] OpenRouter Error: {e}")
+        
+        # Fallback Groq
+        if self.groq_key:
+            try:
+                headers = {
+                    "Authorization": f"Bearer {self.groq_key}",
+                    "Content-Type": "application/json"
+                }
+                
+                data = {
+                    "model": self.groq_model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    "max_tokens": 200,
+                    "temperature": 0.7
+                }
+                
+                response = requests.post(url=self.groq_url, headers=headers, data=json.dumps(data), timeout=30)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if "choices" in result and len(result["choices"]) > 0:
+                        bot_response = result["choices"][0]["message"].get("content", "")
+                        if bot_response and bot_response.strip():
+                            print("[SUCCESS] Groq API")
+                            return bot_response.strip()
+                            
+            except Exception as e:
+                print(f"[WARNING] Groq Error: {e}")
+        
+        # Fallback local
+        print("[FALLBACK] Using local responses")
+        return self._get_dynamic_fallback(user_input, lead_type, style, context_info)
     
     def _get_context_info(self, user_input: str, lead_type: str, style: str, emotion: str) -> str:
         """Détermine le contexte probable du besoin client"""
