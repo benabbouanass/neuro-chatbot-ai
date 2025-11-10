@@ -73,7 +73,7 @@ if st.button("Test Groq API"):
             }
             
             data = {
-                "model": "llama3-8b-8192",
+                "model": "llama-3.1-8b-instant",
                 "messages": [{"role": "user", "content": "Hello"}],
                 "max_tokens": 50
             }

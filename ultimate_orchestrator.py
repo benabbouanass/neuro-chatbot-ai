@@ -25,7 +25,7 @@ class UltimateOrchestrator:
         self.url = "https://openrouter.ai/api/v1/chat/completions"
         self.groq_url = "https://api.groq.com/openai/v1/chat/completions"
         self.model = "meta-llama/llama-3.2-3b-instruct:free"
-        self.groq_model = "llama3-8b-8192"
+        self.groq_model = "llama-3.1-8b-instant"
         self.hf_key = HUGGINGFACE_API_KEY
         self.conversation_context = []  # Historique conversationnel
     
