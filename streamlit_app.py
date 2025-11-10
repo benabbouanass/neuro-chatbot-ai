@@ -5,6 +5,7 @@ from ultimate_orchestrator import orchestrator
 from database import db_manager
 from premium_analytics import render_premium_analytics
 from enhanced_styles import get_advanced_css
+from saas_styles import get_saas_chat_css
 import re
 import uuid
 from datetime import datetime
@@ -420,73 +421,74 @@ def chat_interface(user):
     if 'conversation_history' not in st.session_state:
         st.session_state.conversation_history = []
     
-    # Défis IA interactifs
-    st.markdown('<div class="pro-card fade-in-up">', unsafe_allow_html=True)
-    st.markdown("### 🎯 Défiez l'IA ! Testez sa capacité d'adaptation")
+
     
-    challenges = [
-        {"emoji": "🔥", "title": "Mode Urgence", "msg": "JE VEUX ACHETER MAINTENANT !", "desc": "Testez la réaction à l'urgence"},
-        {"emoji": "😊", "title": "Mode Poli", "msg": "Bonjour, pourriez-vous m'aider s'il vous plaît ?", "desc": "Voyez l'adaptation à la politesse"},
-        {"emoji": "😠", "title": "Mode Boss", "msg": "Je veux ça maintenant ! Donnez-moi le prix !", "desc": "Testez la gestion de l'autorité"},
-        {"emoji": "🤔", "title": "Mode Hésitant", "msg": "Je pense que ça pourrait m'intéresser...", "desc": "Observez la patience de l'IA"},
-        {"emoji": "❄️", "title": "Mode Rejet", "msg": "Non merci, pas intéressé du tout", "desc": "Défi : convaincre l'inconvaincu"}
-    ]
-    
-    cols = st.columns(len(challenges))
-    for i, challenge in enumerate(challenges):
-        with cols[i]:
-            if st.button(f"{challenge['emoji']} **{challenge['title']}**\n{challenge['desc']}", key=f"challenge_{i}"):
-                st.session_state.test_message = challenge['msg']
-                st.session_state.challenge_mode = challenge['title']
-                st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Interface de chat avec historique
-    st.markdown('<div class="chat-container fade-in-up">', unsafe_allow_html=True)
+    # Interface de chat professionnelle
+    st.markdown("""
+    <div class="saas-chat-interface">
+        <div class="chat-header">
+            <div class="chat-title">
+                <i class="fas fa-robot"></i>
+                <span>Neuro Assistant</span>
+                <div class="status-indicator online"></div>
+            </div>
+            <div class="chat-subtitle">Intelligence Émotionnelle & Analyse Comportementale</div>
+        </div>
+        <div class="chat-messages">
+    """, unsafe_allow_html=True)
     
     # Affichage de l'historique de conversation
     if st.session_state.conversation_history:
-        st.markdown('<div class="conversation-history">', unsafe_allow_html=True)
-        st.markdown("### 💬 Historique de la conversation")
-        
         for msg in st.session_state.conversation_history:
             timestamp = msg.get('timestamp', '')
-            st.markdown(f'<div class="message-user">👤 {msg["user_message"]}<div class="message-timestamp">{timestamp}</div></div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="message-bot">🤖 {msg["bot_response"]}<div class="message-timestamp">Lead: {msg.get("lead_type", "Unknown")} | Style: {msg.get("style", "neutre")}</div></div>', unsafe_allow_html=True)
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="message-bubble user-message">
+                <div class="message-content">{msg["user_message"]}</div>
+                <div class="message-time">{timestamp}</div>
+            </div>
+            <div class="message-bubble bot-message">
+                <div class="message-content">{msg["bot_response"]}</div>
+                <div class="message-meta">
+                    <span class="lead-badge {msg.get("lead_type", "unknown").lower()}">{msg.get("lead_type", "Unknown")}</span>
+                    <span class="style-badge">{msg.get("style", "neutre")}</span>
+                    <span class="message-time">{timestamp}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
         
         # Bouton pour effacer l'historique
-        if st.button("🗑️ Effacer l'historique", key="clear_history"):
+        if st.button("🗑️ Nouvelle conversation", key="clear_history"):
             st.session_state.conversation_history = []
             st.rerun()
+    else:
+        st.markdown("""
+        <div class="welcome-message">
+            <div class="welcome-icon">👋</div>
+            <h3>Bienvenue ! Comment puis-je vous aider ?</h3>
+            <p>Je suis votre assistant IA spécialisé en marketing digital. Posez-moi vos questions !</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Formulaire de chat
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Formulaire de chat professionnel
+    st.markdown('<div class="chat-input-container">', unsafe_allow_html=True)
     with st.form("chat_form", clear_on_submit=True):
-        col1, col2 = st.columns([5, 1])
+        col1, col2 = st.columns([6, 1])
         
         with col1:
-            default_msg = st.session_state.get("test_message", "")
-            challenge_mode = st.session_state.get("challenge_mode", "")
-            placeholder = f"🎯 Défi {challenge_mode} activé ! Ou tapez votre message..." if challenge_mode else "💭 Tapez votre message ou choisissez un défi..."
-            
             user_input = st.text_input(
                 "Message",
-                value=default_msg,
-                placeholder=placeholder,
-                label_visibility="collapsed"
+                placeholder="💬 Tapez votre message ici...",
+                label_visibility="collapsed",
+                key="chat_input"
             )
         
         with col2:
-            submitted = st.form_submit_button("🚀 Envoyer", use_container_width=True)
+            submitted = st.form_submit_button("🚀", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     
     if submitted and user_input.strip():
-        # Nettoyer les variables de session après envoi
-        if "test_message" in st.session_state:
-            del st.session_state.test_message
-        if "challenge_mode" in st.session_state:
-            del st.session_state.challenge_mode
             
         with st.spinner("🧠 Analyse en cours..."):
             result = orchestrator.process_message(user_input)
@@ -519,49 +521,35 @@ def chat_interface(user):
             )
             
             # Affichage du nouveau message
-            st.markdown(f'<div class="message-user">👤 {user_input}<div class="message-timestamp">{conversation_entry["timestamp"]}</div></div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="message-bot">🤖 {result["bot_response"]}<div class="message-timestamp">Lead: {result["lead_data"].get("lead_type")} | Style: {result.get("style_data", {}).get("style")}</div></div>', unsafe_allow_html=True)
-            
-            # Métriques en temps réel
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.markdown(f"""
-                <div class="metric-pro">
-                    <div class="metric-label">Émotion</div>
-                    <div class="metric-value">😊</div>
-                    <div style="color: var(--text-secondary);">{result["emotion_data"].get("emotion", "neutral")}</div>
+            st.markdown(f"""
+            <div class="message-bubble user-message new-message">
+                <div class="message-content">{user_input}</div>
+                <div class="message-time">{conversation_entry["timestamp"]}</div>
+            </div>
+            <div class="message-bubble bot-message new-message">
+                <div class="message-content">{result["bot_response"]}</div>
+                <div class="message-meta">
+                    <span class="lead-badge {result["lead_data"].get("lead_type", "unknown").lower()}">{result["lead_data"].get("lead_type")}</span>
+                    <span class="style-badge">{result.get("style_data", {}).get("style")}</span>
+                    <span class="message-time">{conversation_entry["timestamp"]}</span>
                 </div>
-                """, unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
             
-            with col2:
-                st.markdown(f"""
-                <div class="metric-pro">
-                    <div class="metric-label">Lead Type</div>
-                    <div class="metric-value">🎯</div>
-                    <div style="color: var(--text-secondary);">{result["lead_data"].get("lead_type", "Unknown")}</div>
+            # Métriques discrètes
+            confidence = result["lead_data"].get("confidence", 0)
+            st.markdown(f"""
+            <div class="analysis-summary">
+                <div class="analysis-item">
+                    <span class="analysis-label">Émotion:</span>
+                    <span class="analysis-value">{result["emotion_data"].get("emotion", "neutral")}</span>
                 </div>
-                """, unsafe_allow_html=True)
-            
-            with col3:
-                confidence = result["lead_data"].get("confidence", 0)
-                st.markdown(f"""
-                <div class="metric-pro">
-                    <div class="metric-label">Confiance</div>
-                    <div class="metric-value">{confidence:.0%}</div>
-                    <div style="color: var(--text-secondary);">Précision</div>
+                <div class="analysis-item">
+                    <span class="analysis-label">Confiance:</span>
+                    <span class="analysis-value">{confidence:.0%}</span>
                 </div>
-                """, unsafe_allow_html=True)
-            
-            with col4:
-                style = result.get("style_data", {}).get("style", "neutre")
-                st.markdown(f"""
-                <div class="metric-pro">
-                    <div class="metric-label">Style</div>
-                    <div class="metric-value">🎭</div>
-                    <div style="color: var(--text-secondary);">{style}</div>
-                </div>
-                """, unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -619,6 +607,7 @@ def main():
     # CSS professionnel
     st.markdown(get_professional_css(), unsafe_allow_html=True)
     st.markdown(get_advanced_css(), unsafe_allow_html=True)
+    st.markdown(get_saas_chat_css(), unsafe_allow_html=True)
     
     # Initialisation DB
     if 'db_initialized' not in st.session_state:
